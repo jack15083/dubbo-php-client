@@ -1,0 +1,30 @@
+{
+  "name": "jack15083/dubbo-php-client",
+  "type": "library",
+  "description": "PHP client for dubbo",
+  "keywords": [
+    "dubbo",
+    "dubbo-php-client",
+    "rpc",
+    "php-rpc"
+  ],
+  "homepage": "https://github.com/jack15083/dubbo-php-client",
+  "authors": [
+    {
+      "name": "jack15083",
+      "email": "jack15083@gmail.com",
+      "homepage": "https://github.com/jack15083"
+    }
+  ],
+  "require": {
+    "php": ">=7.0.0",
+    "crazyxman/hessian-parser": ">=1.0.0",
+    "doctrine/annotations": "v1.8.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "DubboClient\\": "src/rpc",
+      "DubboClientDemo\\": "demo"
+    }
+  }
+}
