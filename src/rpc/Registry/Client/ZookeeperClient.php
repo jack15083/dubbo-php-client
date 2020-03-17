@@ -20,11 +20,11 @@ use \Zookeeper;
 
 class ZookeeperClient
 {
-    private $_handle;
+    public  $_handle;
     private $_rootNode = '/dubbo';
     private $_providersNode = 'providers';
     private $_serviceSet;
-    private $_clusterIp;
+    public  $_clusterIp;
 
     public function __construct(YMLParser $ymlParser)
     {
