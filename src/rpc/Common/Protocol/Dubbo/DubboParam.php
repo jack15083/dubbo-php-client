@@ -35,6 +35,8 @@ class DubboParam
     */
     const ARRAYLIST = 9;
     const DEFAULT_TYPE = 10;
+    const LONG = 3;
+    const SHORT = 1;
 
     const adapter = [
         /*
@@ -48,7 +50,9 @@ class DubboParam
         self::MAP => 'Ljava/util/Map;',
         */
         self::ARRAYLIST => 'Ljava/util/ArrayList;',
-        self::DEFAULT_TYPE => 'Ljava/lang/Object;'
+        self::DEFAULT_TYPE => 'Ljava/lang/Object;',
+        self::LONG => 'J',
+        self::SHORT => 'S',
     ];
 
     public function __construct($params)
@@ -93,6 +97,16 @@ class DubboParam
             case 'double':
             case 'string':
             case 'NULL':
+                if(preg_match('/^long\./is', $param)) {
+                    $data = explode('.', $param);
+                    $param = (int) $data[1];
+                    return self::adapter[self::LONG];
+                }
+            if(preg_match('/^short\./is', $param)) {
+                $data = explode('.', $param);
+                $param = (int) $data[1];
+                return self::adapter[self::SHORT];
+            }
                 return self::adapter[self::DEFAULT_TYPE];
             case 'array':
                 if (Collection::isSequential($param)) {

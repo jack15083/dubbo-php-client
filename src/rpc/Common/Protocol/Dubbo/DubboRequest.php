@@ -15,7 +15,6 @@
 namespace DubboClient\Common\Protocol\Dubbo;
 
 use DubboClient\Common\Client\SwooleClient;
-use DubboClient\Common\Helper\Functions;
 use DubboClient\Common\DubboException;
 
 class DubboRequest
@@ -51,24 +50,6 @@ class DubboRequest
         return $response->getContents();
     }
 
-    public function rpcRequest($data, $host, $port, $timeout)
-    {
-        //创建一个客户端
-        $client = stream_socket_client("tcp://{$host}:{$port}", $errno, $errMsg, $timeout);
-        if (!$client) {
-            $error = "{$errno} : {$errMsg} \n";
-            return ['error' => $error];
-        }
-
-        //向服务端发送我们自定义的协议数据
-        fwrite($client, $data, strlen($data));
-        //读取服务端传来的数据
-        $data = fread($client, self::MAX_RECV_LEN);
-        //关闭客户端
-        fclose($client);
-        return ['error' => null, 'data' => $data];
-    }
-
     private function request()
     {
         $this->generateRequestId();
@@ -81,17 +62,26 @@ class DubboRequest
             $host = $this->_chosenDubboUrl->getHost();
             $port = $this->_chosenDubboUrl->getPort();
             $timeout = $this->_serviceConfig['timeout'];
-            $resp = $this->rpcRequest($data, $host, $port, $timeout);
-            if(!empty($resp['error'])) {
-                $exceptionMsg = $resp['error'];
-            }
-
-            $respData = $resp['data'];
-            if (!$respData) {
-                $exceptionMsg = "request wrong data protocol. line:" . __LINE__;
+            $sw_client = new SwooleClient($host, $port, $timeout);
+            $sw_client->setConsumer();
+            $exceptionMsg = '';
+            if (!$sw_client->connect()) {
+                $exceptionMsg = "Connection service timeout. line:" . __LINE__;
                 goto retry;
             }
-
+            if (!$sw_client->send($data, strlen($data))) {
+                $exceptionMsg = "Swoole send() data timeout. line:" . __LINE__;
+                goto retry;
+            }
+            $respData = $sw_client->recv(DubboProtocol::PROTOCOL_HEAD_LEN);
+            if (!$respData) {
+                if ($respData === false) {
+                    $exceptionMsg = "Swoole recv() data timeout. line:" . __LINE__;
+                } else {
+                    $exceptionMsg = "Swoole recv() wrong data protocol. line:" . __LINE__;
+                }
+                goto retry;
+            }
             $protocol->unPackHeader($respData);
             if ($protocol->getRequestId() != $this->getRequestId()) {
                 $exceptionMsg = "The returned requestId is inconsistent. line:" . __LINE__;
@@ -101,11 +91,35 @@ class DubboRequest
             if (strlen(substr($respData, DubboProtocol::PROTOCOL_HEAD_LEN)) == $len) {
                 break;
             }
+            $startTime = getMillisecond();
+            do {
+                if ($len >= self::MAX_RECV_LEN) {
+                    $readLen = self::MAX_RECV_LEN;
+                    $len -= self::MAX_RECV_LEN;
+                } else {
+                    $readLen = $len;
+                    $len = 0;
+                }
+                $chunk = $sw_client->recv($readLen);
+                if ((getMillisecond() - $startTime) > ($this->_serviceConfig['timeout'] * 1000)) {
+                    $exceptionMsg = "Data too large to receive data timeout. line:" . __LINE__;
+                    goto _footer;
+                }
+                if ($chunk === false) {
+                    $exceptionMsg = "Swoole recv() data timeout. line:" . __LINE__;
+                    goto retry;
+                } else {
+                    $respData .= $chunk;
+                }
+            } while ($len > 0);
+            if (!$len) {
+                break;
+            }
             retry:
             $index = ($index + 1) % count($this->_dubboUrls);
         } while ($retry-- > 0);
         _footer:
-        if (!empty($exceptionMsg)) {
+        if ($exceptionMsg) {
             throw new DubboException("{$exceptionMsg}, host:{$host}:{$port}, timeout:{$timeout}!", DubboException::BAD_RESPONSE);
         }
         $response = new DubboResponse($protocol, $protocol->unpackResponse($respData));
