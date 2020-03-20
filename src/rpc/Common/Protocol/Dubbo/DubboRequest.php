@@ -122,6 +122,10 @@ class DubboRequest
         if ($exceptionMsg) {
             throw new DubboException("{$exceptionMsg}, host:{$host}:{$port}, timeout:{$timeout}!", DubboException::BAD_RESPONSE);
         }
+
+        if(preg_match('/Exception/s', $respData)) {
+            throw  new DubboException($respData);
+        }
         $response = new DubboResponse($protocol, $protocol->unpackResponse($respData));
         return $response;
     }
