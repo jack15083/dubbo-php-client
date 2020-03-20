@@ -124,7 +124,7 @@ class DubboRequest
         }
 
         if(preg_match('/Exception/s', $respData)) {
-            throw  new DubboException($respData);
+            throw  new DubboException(utf8_encode($respData));
         }
         $response = new DubboResponse($protocol, $protocol->unpackResponse($respData));
         return $response;
