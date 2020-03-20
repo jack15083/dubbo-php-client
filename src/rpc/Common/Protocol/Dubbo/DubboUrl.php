@@ -14,6 +14,7 @@
 
 namespace DubboClient\Common\Protocol\Dubbo;
 
+use DubboClient\Common\DubboException;
 use DubboClient\Common\Serialization\Support\Hessian2;
 use DubboClient\Common\Serialization\Support\FastJson;
 
