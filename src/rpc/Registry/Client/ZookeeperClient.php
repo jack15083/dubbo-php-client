@@ -36,7 +36,7 @@ class ZookeeperClient
     public function connect()
     {
         $this->_handle->connect($this->_clusterIp, function ($type, $state, $path) {
-            LoggerFacade::getLogger()->info('zookeeper connect() callback.', $type, $state, $path);
+            LoggerFacade::getLogger()->debug('zookeeper connect() callback.', $type, $state, $path);
             if ($state == Zookeeper::CONNECTED_STATE) {
                 $this->registerServiceSet($this->_serviceSet);
             } elseif ($state == Zookeeper::EXPIRED_SESSION_STATE) {
