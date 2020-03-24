@@ -6,7 +6,7 @@ dubbo-php-client 是基于[crazyxman/dubbo-php-framework](https://github.com/cra
 
 # 依赖扩展: 
 
-zookeeper,bcmath,yaml
+zookeeper,bcmath, swoole
 
 
 # 安装
